@@ -13,14 +13,15 @@
 class LlamaClient {
 public:
     // constructor
-    LlamaClient();
+    LlamaClient(const str& host, uint16 port);
     // destructor
     ~LlamaClient();
 
+public:
     // send request and get response
     wstr Request(const wstr& req, const fcn<void(const wstr& rsp, bool bLast)>& cb = nullptr);
-
-public:
-    httplib::Client* pClient = nullptr;
     
+private:
+    httplib::Client* pClient = nullptr;
+    nlohmann::json params;
 };
