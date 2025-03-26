@@ -12,6 +12,12 @@
 
 class LlamaClient {
 public:
+    struct RoleContent {
+        str role;
+        str content;
+    };
+
+public:
     // constructor
     LlamaClient(const str& host, uint16 port);
     // destructor
@@ -19,9 +25,28 @@ public:
 
 public:
     // send request and get response
-    wstr Request(const wstr& req, const fcn<void(const wstr& rsp, bool bLast)>& cb = nullptr);
-    
+    str Request(const str& req, const fcn<void(const str& rsp, bool bLast)>& cb = nullptr);
+
+public:
+    // get now messages
+    arr<RoleContent>& GetMessages();
+
+    // set now messages
+    void SetMessages(const arr<RoleContent>& messages);
+
+    // add message
+    void AddMessage(const RoleContent& message);
+
+    // clear messages
+    void ClearMessages();
+
+private:
+    // prepare history messages
+    void PrepareHistoryMessages();
+
 private:
     httplib::Client* pClient = nullptr;
     nlohmann::json params;
+
+    arr<RoleContent> messages;
 };

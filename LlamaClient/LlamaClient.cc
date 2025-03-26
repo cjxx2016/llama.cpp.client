@@ -12,21 +12,14 @@ LlamaClient::LlamaClient(const str& host, uint16 port) {
     this->pClient->set_read_timeout(waitS);
     this->pClient->set_write_timeout(waitS);    
 
+    this->messages = {
+          {"system", "You are a helpful assistant."}
+        // , {"user", "你好"}
+        // , {"assistant", "你好！有什么可以帮助你的吗？"}
+    };
+
     this->params = nlohmann::json::parse(R"({
-        "messages": [{
-                "role": "system",
-                "content": "You are a helpful assistant."
-            }, {
-                "role": "user",
-                "content": "你好"
-            }, {
-                "role": "assistant",
-                "content": "你好！有什么可以帮助你的吗？"
-            }, {
-                "role": "user",
-                "content": "你叫什么名字?"
-            }
-        ],
+        "messages": [],
         "stream": true,
         "cache_prompt": true,
         "samplers": "edkypmxt",
@@ -51,6 +44,8 @@ LlamaClient::LlamaClient(const str& host, uint16 port) {
         "timings_per_token": false
     })");
 
+    this->PrepareHistoryMessages();
+
 }
 // destructor
 LlamaClient::~LlamaClient() {
@@ -62,7 +57,7 @@ LlamaClient::~LlamaClient() {
 }
 
 // send request and get response
-wstr LlamaClient::Request(const wstr& req, const fcn<void(const wstr& rsp, bool bLast)>& cb/* = nullptr*/) {
+str LlamaClient::Request(const str& req, const fcn<void(const str& rsp, bool bLast)>& cb/* = nullptr*/) {
     static const httplib::Headers headers = {
         {"Connection", "keep-alive"},
         {"Content-Type", "application/json"},
@@ -70,34 +65,102 @@ wstr LlamaClient::Request(const wstr& req, const fcn<void(const wstr& rsp, bool 
         // Add API key or other headers if needed
     };
 
+    this->messages.push_back({"user", req});
+
+    this->PrepareHistoryMessages();
+
     // Serialize the json object to a string
     str params_json = this->params.dump();
 
     NLPowerBuf bufRecv;
     int cutLength = 0;
     
-    auto FuncProcessRecvChat = [&](const str& recv, int& dealLength) -> bool {
-        if (recv.empty()) {
-            return false;
-        }
-        return true;
+    auto FuncProcessRecvChat = [cb](const str& recv, int& iDealLength) -> str {
+        // std::cout << recv << std::endl;
 
+        str ret;
+        if (recv.empty()) {
+            return ret;
+        }
+
+        nlohmann::json data;
+
+        // 检测 recv是否为有效的json数据        
+        try {
+            data = nlohmann::json::parse(recv.substr(5));
+        } catch (const std::exception& e) {
+            iDealLength = 0;
+            return ret;
+        }
+
+        iDealLength = recv.size();
+
+        if (data.contains("choices")) {
+            for (auto& choice : data["choices"]) {
+                if (choice.contains("delta")) {
+                    if (choice["delta"].contains("content")) {
+                        auto content = choice["delta"]["content"].get<str>();                        
+                        if (cb) {
+                            cb(content, choice["finish_reason"].get<str>() == "stop");
+                        }
+                        ret.append(content);
+                    }
+                }
+            }
+        }
+
+        return ret;
     };
+
+    str ret_s;
         
 _re_post_info:
     auto res = this->pClient->Post("/v1/chat/completions", headers, params_json, str("application/json"), [&](const char *data, size_t data_length) -> bool {
         bufRecv.Add(data, data_length);
-        FuncProcessRecvChat(bufRecv, cutLength);
+        ret_s += FuncProcessRecvChat(bufRecv, cutLength);
         bufRecv.CutFront(cutLength);
+        
         return true;
     });
     if (res/* && res->status == 200*/) {
-        FuncProcessRecvChat(res->body, cutLength);
+        ret_s += FuncProcessRecvChat(res->body, cutLength);
     } else {
         // Handle error response from server
         // std::cerr << "prompt error: " << res.error() << std::endl;
         goto _re_post_info;
     }
 
-    return L"welcome to my world!";
+    return ret_s;
+}
+
+// get now messages
+auto LlamaClient::GetMessages() -> arr<RoleContent>& {
+    return this->messages;
+}
+
+// set now messages
+void LlamaClient::SetMessages(const arr<RoleContent>& messages) {
+    this->messages = messages;
+}
+
+// add message
+void LlamaClient::AddMessage(const RoleContent& message) {
+    this->messages.push_back(message);
+}
+
+// prepare history messages
+void LlamaClient::PrepareHistoryMessages() {
+    // 将历史消息添加到params中
+    this->params["messages"] = nlohmann::json::array();
+    for (auto& message : this->messages) {
+        this->params["messages"].push_back({
+            {"role", message.role},
+            {"content", message.content}
+        });
+    }
+}
+
+// clear messages
+void LlamaClient::ClearMessages() {
+    this->messages.clear();
 }

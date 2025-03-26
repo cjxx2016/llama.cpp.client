@@ -2,9 +2,9 @@
 
 int main() {
 
-    LlamaClient client;
+    LlamaClient client("127.0.0.1", 9001);
 
-    std::wcout << client.Request(L"Hello world!") << std::endl;
+    std::cout << client.Request("Hello world!") << std::endl;
 
     std::cin.get();
 
