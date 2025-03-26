@@ -13,9 +13,9 @@ LlamaClient::LlamaClient(const str& host, uint16 port) {
     this->pClient->set_write_timeout(waitS);    
 
     this->messages = {
-          {"system", "You are a helpful assistant."}
-        // , {"user", "你好"}
-        // , {"assistant", "你好！有什么可以帮助你的吗？"}
+          {Role::SYSTEM, "You are a helpful assistant."}
+        // , {Role::USER, "你好"}
+        // , {Role::ASSISTANT, "你好！有什么可以帮助你的吗？"}
     };
 
     this->params = nlohmann::json::parse(R"({
@@ -65,7 +65,7 @@ str LlamaClient::Request(const str& req, const fcn<void(const str& rsp, bool bLa
         // Add API key or other headers if needed
     };
 
-    this->messages.push_back({"user", req});
+    this->messages.push_back({Role::USER, req});
 
     this->PrepareHistoryMessages();
 
@@ -76,16 +76,16 @@ str LlamaClient::Request(const str& req, const fcn<void(const str& rsp, bool bLa
     int cutLength = 0;
     
     auto FuncProcessRecvChat = [cb](const str& recv, int& iDealLength) -> str {
+        if (recv.empty()) {
+            return {};
+        }
+
         // std::cout << recv << std::endl;
 
         str ret;
-        if (recv.empty()) {
-            return ret;
-        }
 
         nlohmann::json data;
 
-        // 检测 recv是否为有效的json数据        
         try {
             data = nlohmann::json::parse(recv.substr(5));
         } catch (const std::exception& e) {
@@ -117,13 +117,13 @@ str LlamaClient::Request(const str& req, const fcn<void(const str& rsp, bool bLa
 _re_post_info:
     auto res = this->pClient->Post("/v1/chat/completions", headers, params_json, str("application/json"), [&](const char *data, size_t data_length) -> bool {
         bufRecv.Add(data, data_length);
-        ret_s += FuncProcessRecvChat(bufRecv, cutLength);
+        ret_s.append(FuncProcessRecvChat(bufRecv, cutLength));
         bufRecv.CutFront(cutLength);
         
         return true;
     });
     if (res/* && res->status == 200*/) {
-        ret_s += FuncProcessRecvChat(res->body, cutLength);
+        ret_s.append(FuncProcessRecvChat(res->body, cutLength));
     } else {
         // Handle error response from server
         // std::cerr << "prompt error: " << res.error() << std::endl;
@@ -154,7 +154,7 @@ void LlamaClient::PrepareHistoryMessages() {
     this->params["messages"] = nlohmann::json::array();
     for (auto& message : this->messages) {
         this->params["messages"].push_back({
-            {"role", message.role},
+            {"role", message.role == Role::SYSTEM ? "system" : message.role == Role::USER ? "user" : "assistant"},
             {"content", message.content}
         });
     }

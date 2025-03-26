@@ -12,8 +12,13 @@
 
 class LlamaClient {
 public:
+    enum Role {
+        SYSTEM = 0,
+        USER = 1,
+        ASSISTANT = 2
+    };
     struct RoleContent {
-        str role;
+        Role role;        
         str content;
     };
 
