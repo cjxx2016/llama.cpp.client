@@ -18,7 +18,7 @@ public:
         ASSISTANT = 2
     };
     struct RoleContent {
-        Role role;        
+        Role role;
         str content;
     };
 

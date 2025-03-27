@@ -45,7 +45,6 @@ LlamaClient::LlamaClient(const str& host, uint16 port) {
     })");
 
     this->PrepareHistoryMessages();
-
 }
 // destructor
 LlamaClient::~LlamaClient() {
@@ -65,7 +64,7 @@ str LlamaClient::Request(const str& req, const fcn<void(const str& rsp, bool bLa
         // Add API key or other headers if needed
     };
 
-    this->messages.push_back({Role::USER, req});
+    this->AddMessage({Role::USER, req});
 
     this->PrepareHistoryMessages();
 
@@ -79,13 +78,9 @@ str LlamaClient::Request(const str& req, const fcn<void(const str& rsp, bool bLa
         if (recv.empty()) {
             return {};
         }
-
         // std::cout << recv << std::endl;
-
         str ret;
-
         nlohmann::json data;
-
         try {
             data = nlohmann::json::parse(recv.substr(5));
         } catch (const std::exception& e) {
