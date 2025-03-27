@@ -24,9 +24,17 @@ public:
 
 public:
     // constructor
+    LlamaClient();
     LlamaClient(const str& host, uint16 port);
     // destructor
     ~LlamaClient();
+
+public:
+    // 
+    void WekeUp(const str& host, uint16 port);
+    
+    // 
+    void ToSleep();
 
 public:
     // send request and get response

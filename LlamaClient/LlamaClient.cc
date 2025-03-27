@@ -1,10 +1,9 @@
 #include "LlamaClient.h"
 
-#include "Base/Inc/NLPowerBuf.h"
+#include "Base/Data/Buf/NLPowerBuf.h"
 
-
-// constructor
-LlamaClient::LlamaClient(const str& host, uint16 port) {
+// 
+void LlamaClient::WekeUp(const str& host, uint16 port) {
     this->pClient = new httplib::Client(host, port);
 
     int waitS = 120;
@@ -46,13 +45,23 @@ LlamaClient::LlamaClient(const str& host, uint16 port) {
 
     this->PrepareHistoryMessages();
 }
-// destructor
-LlamaClient::~LlamaClient() {
+
+// 
+void LlamaClient::ToSleep() {
     if (nullptr == this->pClient) {
         return ;
     }
     delete this->pClient;
     this->pClient = nullptr;
+}
+
+// constructor
+LlamaClient::LlamaClient(const str& host, uint16 port) {
+    this->WekeUp(host, port);
+}
+// destructor
+LlamaClient::~LlamaClient() {
+    this->ToSleep();
 }
 
 // send request and get response
@@ -96,7 +105,11 @@ str LlamaClient::Request(const str& req, const fcn<void(const str& rsp, bool bLa
                     if (choice["delta"].contains("content")) {
                         auto content = choice["delta"]["content"].get<str>();                        
                         if (cb) {
-                            cb(content, choice["finish_reason"].get<str>() == "stop");
+                            if (choice["finish_reason"].is_null()) {
+                                cb(content, false);
+                            } else if (choice["finish_reason"].get<str>() == "stop"){
+                                cb(content, true);
+                            }
                         }
                         ret.append(content);
                     }
