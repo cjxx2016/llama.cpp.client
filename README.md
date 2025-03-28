@@ -2,7 +2,7 @@
 
    cpp client of llama-server
 
-## Buile
+## Build
 
    xmake
 
