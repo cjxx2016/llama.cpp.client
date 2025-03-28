@@ -1,6 +1,6 @@
 # llama.cpp.client
 
-   cpp client of llama-server
+   cpp client of llama.cpp's llama-server
 
 ## Build
 
