@@ -88,35 +88,42 @@ str LlamaClient::Request(const str& req, const fcn<void(const str& rsp, bool bLa
             return {};
         }
         // std::cout << recv << std::endl;
-        str ret;
+        
         nlohmann::json data;
         try {
             data = nlohmann::json::parse(recv.substr(5));
         } catch (const std::exception& e) {
             iDealLength = 0;
-            return ret;
+            return {};
         }
 
+        str ret;
+
         iDealLength = recv.size();
+        
+        bool bFinished = false;
+        str content;
 
         if (data.contains("choices")) {
             for (auto& choice : data["choices"]) {
+                bFinished = false;
+                content.clear();
+                if (choice.contains("finish_reason")) {
+                    if (!choice["finish_reason"].is_null() && choice["finish_reason"].get<str>() == "stop") {
+                        bFinished = true;
+                    }
+                }
                 if (choice.contains("delta")) {
                     if (choice["delta"].contains("content")) {
-                        auto content = choice["delta"]["content"].get<str>();                        
-                        if (cb) {
-                            if (choice["finish_reason"].is_null()) {
-                                cb(content, false);
-                            } else if (choice["finish_reason"].get<str>() == "stop"){
-                                cb(content, true);
-                            }
-                        }
+                        content = choice["delta"]["content"].get<str>();
                         ret.append(content);
                     }
                 }
+                if (cb) {
+                    cb(content, bFinished);
+                }
             }
         }
-
         return ret;
     };
 
