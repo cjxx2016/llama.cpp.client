@@ -38,7 +38,7 @@ public:
 
 public:
     // send request and get response
-    str Ask(const str& req, const fcn<void(const str& rsp, bool bLast)>& cb = nullptr);
+    str Talk(const str& req, const fcn<void(const str& rsp, bool bLast)>& cb = nullptr);
 
 public:
     // get now messages

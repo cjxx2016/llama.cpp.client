@@ -65,7 +65,7 @@ LlamaClient::~LlamaClient() {
 }
 
 // send request and get response
-str LlamaClient::Ask(const str& req, const fcn<void(const str& rsp, bool bLast)>& cb/* = nullptr*/) {
+str LlamaClient::Talk(const str& req, const fcn<void(const str& rsp, bool bLast)>& cb/* = nullptr*/) {
     static const httplib::Headers headers = {
         {"Connection", "keep-alive"},
         {"Content-Type", "application/json"},
