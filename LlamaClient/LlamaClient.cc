@@ -19,7 +19,7 @@ void LlamaClient::WekeUp(const str& host, uint16 port) {
 
     this->params = nlohmann::json::parse(R"({
         "messages": [],
-        "stream": true,
+        "stream": false,
         "cache_prompt": true,
         "samplers": "edkypmxt",
         "temperature": 0.8,
@@ -72,7 +72,6 @@ str LlamaClient::Ask(const str& req, const fcn<void(const str& rsp, bool bLast)>
         {"Accept", "text/event-stream"}
         // Add API key or other headers if needed
     };
-
     this->Add({Role::USER, req});
 
     this->PrepareHistoryMessages();
@@ -87,16 +86,20 @@ str LlamaClient::Ask(const str& req, const fcn<void(const str& rsp, bool bLast)>
         if (recv.empty()) {
             return {};
         }
-        // std::cout << recv << std::endl;
+        // std::cout << "L" << recv << std::endl;
         
         nlohmann::json data;
+        
         try {
-            data = nlohmann::json::parse(recv.substr(5));
+            if (cb) {
+                data = nlohmann::json::parse(recv.substr(5));
+            } else {
+                data = nlohmann::json::parse(recv);
+            }
         } catch (const std::exception& e) {
             iDealLength = 0;
             return {};
         }
-
         str ret;
 
         iDealLength = recv.size();
@@ -118,6 +121,11 @@ str LlamaClient::Ask(const str& req, const fcn<void(const str& rsp, bool bLast)>
                         content = choice["delta"]["content"].get<str>();
                         ret.append(content);
                     }
+                } else if (choice.contains("message")) {
+                    if (choice["message"].contains("content")) {
+                        content = choice["message"]["content"].get<str>();
+                        ret.append(content);
+                    }
                 }
                 if (cb) {
                     cb(content, bFinished);
@@ -130,13 +138,22 @@ str LlamaClient::Ask(const str& req, const fcn<void(const str& rsp, bool bLast)>
     str ret_s;
         
 _re_post_info:
-    auto res = this->pClient->Post("/v1/chat/completions", headers, params_json, str("application/json"), [&](const char *data, size_t data_length) -> bool {
-        bufRecv.Add(data, data_length);
-        ret_s.append(FuncProcessRecvChat(bufRecv, cutLength));
-        bufRecv.CutFront(cutLength);
-        
-        return true;
-    });
+    httplib::ContentReceiver rec;
+    if (cb) {
+        rec = [&](const char *data, size_t data_length) -> bool {
+            bufRecv.Add(data, data_length);
+            ret_s.append(FuncProcessRecvChat(bufRecv, cutLength));
+            bufRecv.CutFront(cutLength);
+            
+            return true;
+        };
+        this->SetStream(true);
+    } else {
+        this->SetStream(false);
+    }
+
+    auto res = this->pClient->Post("/v1/chat/completions", headers, params_json, str("application/json"), rec);
+
     if (res/* && res->status == 200*/) {
         ret_s.append(FuncProcessRecvChat(res->body, cutLength));
     } else {
@@ -164,6 +181,11 @@ void LlamaClient::Add(const RoleContent& message) {
     this->messages.push_back(message);
 }
 
+// clear messages
+void LlamaClient::Clear() {
+    this->messages.clear();
+}
+
 // prepare history messages
 void LlamaClient::PrepareHistoryMessages() {
     // 将历史消息添加到params中
@@ -176,7 +198,7 @@ void LlamaClient::PrepareHistoryMessages() {
     }
 }
 
-// clear messages
-void LlamaClient::Clear() {
-    this->messages.clear();
+// set steam
+void LlamaClient::SetStream(bool bStream) {
+    this->params["stream"] = bStream;
 }

@@ -57,6 +57,9 @@ private:
     // prepare history messages
     void PrepareHistoryMessages();
 
+    // set steam
+    void SetStream(bool bStream);
+
 private:
     httplib::Client* pClient = nullptr;
     nlohmann::json params;
