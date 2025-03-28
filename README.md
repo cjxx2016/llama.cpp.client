@@ -2,10 +2,6 @@
 
    c++ client of llama.cpp's llama-server
 
-## Build
-
-   xmake
-
 ## Usage
 
 ```cpp
@@ -24,5 +20,7 @@
       return std::cin.get();
    }
 ```  
+
+## Build with xmake
 
    Have fun.
