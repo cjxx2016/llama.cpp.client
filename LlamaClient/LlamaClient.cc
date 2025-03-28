@@ -113,19 +113,19 @@ str LlamaClient::Ask(const str& req, const fcn<void(const str& rsp, bool bLast)>
                         bFinished = true;
                     }
                 }
-                if (choice.contains("delta")) {
-                    if (choice["delta"].contains("content")) {
-                        content = choice["delta"]["content"].get<str>();
-                        ret.append(content);
+                if (cb) {
+                    if (choice.contains("delta")) {
+                        if (choice["delta"].contains("content")) {
+                            content = choice["delta"]["content"].get<str>();
+                            ret.append(content);
+                        }
                     }
+                    cb(content, bFinished);
                 } else if (choice.contains("message")) {
                     if (choice["message"].contains("content")) {
                         content = choice["message"]["content"].get<str>();
                         ret.append(content);
                     }
-                }
-                if (cb) {
-                    cb(content, bFinished);
                 }
             }
         }
