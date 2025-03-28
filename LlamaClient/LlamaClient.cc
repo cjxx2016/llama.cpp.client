@@ -76,9 +76,6 @@ str LlamaClient::Ask(const str& req, const fcn<void(const str& rsp, bool bLast)>
 
     this->PrepareHistoryMessages();
 
-    // Serialize the json object to a string
-    str params_json = this->params.dump();
-
     NLPowerBuf bufRecv;
     int cutLength = 0;
     
@@ -136,8 +133,7 @@ str LlamaClient::Ask(const str& req, const fcn<void(const str& rsp, bool bLast)>
     };
 
     str ret_s;
-        
-_re_post_info:
+
     httplib::ContentReceiver rec;
     if (cb) {
         rec = [&](const char *data, size_t data_length) -> bool {
@@ -152,8 +148,11 @@ _re_post_info:
         this->SetStream(false);
     }
 
+    // Serialize the json object to a string
+    str params_json = this->params.dump();    
+        
+_re_post_info:
     auto res = this->pClient->Post("/v1/chat/completions", headers, params_json, str("application/json"), rec);
-
     if (res/* && res->status == 200*/) {
         ret_s.append(FuncProcessRecvChat(res->body, cutLength));
     } else {

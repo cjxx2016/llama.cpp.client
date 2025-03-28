@@ -2,6 +2,7 @@ add_rules("mode.debug", "mode.release")
 
 target("llama.cpp.client")
     set_kind("binary")
+    set_symbols("debug")
     add_files("Test.cc")
     add_files("LlamaClient/LlamaClient.cc")
 
