@@ -13,9 +13,9 @@
 class LlamaClient {
 public:
     enum Role {
-        SYSTEM = 0,
+        SYS = 0,
         USER = 1,
-        ASSISTANT = 2
+        BOT = 2
     };
     struct RoleContent {
         Role role;
@@ -38,20 +38,20 @@ public:
 
 public:
     // send request and get response
-    str Request(const str& req, const fcn<void(const str& rsp, bool bLast)>& cb = nullptr);
+    str Ask(const str& req, const fcn<void(const str& rsp, bool bLast)>& cb = nullptr);
 
 public:
     // get now messages
-    arr<RoleContent>& GetMessages();
+    arr<RoleContent>& Get();
 
     // set now messages
-    void SetMessages(const arr<RoleContent>& messages);
+    void Set(const arr<RoleContent>& messages);
 
     // add message
-    void AddMessage(const RoleContent& message);
+    void Add(const RoleContent& message);
 
     // clear messages
-    void ClearMessages();
+    void Clear();
 
 private:
     // prepare history messages

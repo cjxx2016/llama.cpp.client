@@ -4,11 +4,9 @@ int main() {
 
     LlamaClient client("127.0.0.1", 9001);
 
-    client.AddMessage({LlamaClient::SYSTEM, "you are always have a joke for me" });
+    client.Add({LlamaClient::SYS, "you are always have a joke for me" });
 
-    std::cout << client.Request("Hello world!") << std::endl;
+    std::cout << client.Ask("Hello world!") << std::endl;
 
-    std::cin.get();
-
-    return 0;
+    return std::cin.get();
 }

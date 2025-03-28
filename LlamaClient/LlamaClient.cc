@@ -12,9 +12,9 @@ void LlamaClient::WekeUp(const str& host, uint16 port) {
     this->pClient->set_write_timeout(waitS);    
 
     this->messages = {
-          {Role::SYSTEM, "You are a helpful assistant."}
+          {Role::SYS, "You are a helpful assistant."}
         // , {Role::USER, "你好"}
-        // , {Role::ASSISTANT, "你好！有什么可以帮助你的吗？"}
+        // , {Role::BOT, "你好！有什么可以帮助你的吗？"}
     };
 
     this->params = nlohmann::json::parse(R"({
@@ -65,7 +65,7 @@ LlamaClient::~LlamaClient() {
 }
 
 // send request and get response
-str LlamaClient::Request(const str& req, const fcn<void(const str& rsp, bool bLast)>& cb/* = nullptr*/) {
+str LlamaClient::Ask(const str& req, const fcn<void(const str& rsp, bool bLast)>& cb/* = nullptr*/) {
     static const httplib::Headers headers = {
         {"Connection", "keep-alive"},
         {"Content-Type", "application/json"},
@@ -73,7 +73,7 @@ str LlamaClient::Request(const str& req, const fcn<void(const str& rsp, bool bLa
         // Add API key or other headers if needed
     };
 
-    this->AddMessage({Role::USER, req});
+    this->Add({Role::USER, req});
 
     this->PrepareHistoryMessages();
 
@@ -145,21 +145,22 @@ _re_post_info:
         goto _re_post_info;
     }
 
+    this->Add({Role::BOT, req});
     return ret_s;
 }
 
 // get now messages
-auto LlamaClient::GetMessages() -> arr<RoleContent>& {
+auto LlamaClient::Get() -> arr<RoleContent>& {
     return this->messages;
 }
 
 // set now messages
-void LlamaClient::SetMessages(const arr<RoleContent>& messages) {
+void LlamaClient::Set(const arr<RoleContent>& messages) {
     this->messages = messages;
 }
 
 // add message
-void LlamaClient::AddMessage(const RoleContent& message) {
+void LlamaClient::Add(const RoleContent& message) {
     this->messages.push_back(message);
 }
 
@@ -169,13 +170,13 @@ void LlamaClient::PrepareHistoryMessages() {
     this->params["messages"] = nlohmann::json::array();
     for (auto& message : this->messages) {
         this->params["messages"].push_back({
-            {"role", message.role == Role::SYSTEM ? "system" : message.role == Role::USER ? "user" : "assistant"},
+            {"role", message.role == Role::SYS ? "system" : message.role == Role::USER ? "user" : "assistant"},
             {"content", message.content}
         });
     }
 }
 
 // clear messages
-void LlamaClient::ClearMessages() {
+void LlamaClient::Clear() {
     this->messages.clear();
 }
